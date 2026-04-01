@@ -384,7 +384,7 @@ const rooms = {
       stairs:{x:580,y:360,w:110,h:70,label:'Go upstairs'},
       table:{x:465,y:415,w:170,h:95,label:'Eat breakfast'},
       sink:{x:905,y:415,w:110,h:95,label:'Brush teeth'},
-      door:{x:180,y:520,w:65,h:145,label:'Go to school'},
+      door:{x:100,y:435,w:65,h:145,label:'Go to school'},
       parents:{x:145,y:435,w:135,h:120,label:'Kiss Mom and Dad Goodbye'},
       sofa:{x:110,y:560,w:190,h:65,label:'Couch'}
     }
@@ -1664,8 +1664,8 @@ requestAnimationFrame(loop);
 <script>
 // Force door to correct position (left of parents) and override original logic
 (function(){
-  const DOOR_X = 520;
-  const DOOR_Y = 340;
+  const DOOR_X = 100;
+  const DOOR_Y = 435;
   const DOOR_SIZE = 40;
 
   // Override draw loop to render door visually
