@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ready for School! v13</title>
+<style>
+  :root {
+    --bg1: #f7f2e8;
+    --bg2: #dfefff;
+    --panel: rgba(255,255,255,0.94);
+    --text: #2a2440;
+    --accent: #7a5cff;
+    --good: #26a269;
+    --bad: #d64550;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Trebuchet MS, Segoe UI, sans-serif;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--bg2), var(--bg1));
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  #wrap { width: 100vw; height: 100vh; display:grid; place-items:center; }
+  canvas {
+    width: min(100vw, 1280px); height: min(calc(100vh - 12px), 720px);
+    border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.25); background:#edf6ff; image-rendering: crisp-edges;
+  }
+  #mobileControls { position: fixed; inset: auto 0 0 0; display:none; justify-content:space-between; align-items:end; padding: 12px; pointer-events:none; }
+  .mobilePad, .mobileActions { display:flex; gap:10px; pointer-events:auto; }
+  .mobilePad { width: 190px; flex-wrap:wrap; }
+  .mobileBtn { width:58px; height:58px; border:none; border-radius:18px; background: rgba(255,255,255,.88); box-shadow: 0 8px 20px rgba(0,0,0,.18), inset 0 0 0 2px rgba(122,92,255,.2); font: 700 24px/1 Trebuchet MS, sans-serif; color: var(--text); }
+  .mobileBtn.action { width:78px; height:78px; border-radius:24px; font-size:18px; }
+  .mobileSpacer { width:58px; height:58px; }
+  @media (pointer: coarse), (max-width: 900px) {
+    #mobileControls { display:flex; }
+    .panel { width:min(92vw, 860px); padding:18px; }
+    h1 { font-size: 32px; }
+  }
+  .overlay { position: fixed; inset: 0; display:grid; place-items:center; }
+  .panel { width:min(860px, calc(100vw - 30px)); background:var(--panel); border-radius:24px; padding:24px; box-shadow:0 18px 50px rgba(0,0,0,.2); border:4px solid rgba(122,92,255,.15); }
+  .hidden { display:none !important; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .card, .choiceBtn, .btn {
+    border:none; border-radius:18px; padding:14px 16px; font:inherit; color:var(--text); cursor:pointer;
+    background:white; box-shadow: inset 0 0 0 2px rgba(122,92,255,.18); transition:.15s ease;
+  }
+  .card:hover, .choiceBtn:hover, .btn:hover { transform:translateY(-2px); box-shadow: inset 0 0 0 2px rgba(122,92,255,.55), 0 10px 20px rgba(0,0,0,.08); }
+  .card { flex:1 1 260px; min-height:180px; text-align:left; background:linear-gradient(180deg, #fff, #f6f1ff); }
+  h1,h2,h3,p{margin:0 0 12px}
+  .small{font-size:14px; opacity:.85}
+  .kbd{display:inline-block; padding:3px 8px; border-radius:8px; background:#f1efff; box-shadow: inset 0 0 0 1px rgba(122,92,255,.25); font-weight:700; }
+  ul{margin:8px 0 0 18px} li{margin-bottom:8px}
+
+  /* Mobile polish + gamepad-style controls */
+  #mobileControls{
+    position:fixed;
+    inset:auto 0 0 0;
+    display:none;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:
+      10px
+      max(12px, env(safe-area-inset-right))
+      calc(14px + env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+    pointer-events:none;
+    z-index:30;
+  }
+  .mobilePadWrap{
+    pointer-events:auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+  }
+  .mobilePadHint{
+    display:none;
+    font-size:12px;
+    color:#fff;
+    background:rgba(42,36,64,.72);
+    padding:6px 10px;
+    border-radius:999px;
+    box-shadow:0 8px 18px rgba(0,0,0,.18);
+  }
+  .mobilePad{
+    display:grid;
+    grid-template-columns:64px 64px 64px;
+    grid-template-rows:64px 64px 64px;
+    gap:6px;
+    align-items:center;
+    justify-items:center;
+    background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.24),rgba(255,255,255,.10));
+    backdrop-filter:blur(10px);
+    border-radius:28px;
+    padding:10px;
+    box-shadow:
+      0 14px 30px rgba(0,0,0,.22),
+      inset 0 0 0 2px rgba(255,255,255,.14);
+    pointer-events:auto;
+  }
+  .mobileSpacer{width:64px;height:64px}
+  .mobileBtn{
+    width:64px;
+    height:64px;
+    border:none;
+    border-radius:18px;
+    background:radial-gradient(circle at 35% 30%,#ffffff,#e9e2ff 70%,#d9cffb 100%);
+    box-shadow:
+      0 10px 24px rgba(0,0,0,.18),
+      inset 0 -4px 8px rgba(122,92,255,.14),
+      inset 0 2px 2px rgba(255,255,255,.95);
+    font:800 24px/1 Trebuchet MS,sans-serif;
+    color:var(--text);
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+    pointer-events:auto;
+    cursor:pointer;
+  }
+  .mobileBtn:active{
+    transform:scale(.95);
+    background:radial-gradient(circle at 35% 30%,#f8f3ff,#ddd2ff 70%,#c8b8ff 100%);
+  }
+  .mobileBtn.action{
+    width:92px;
+    height:92px;
+    border-radius:24px;
+    font-size:15px;
+    line-height:1.05;
+    letter-spacing:.2px;
+    background:radial-gradient(circle at 35% 30%,#ffe9a8,#ffd15e 68%,#ffbc2f 100%);
+  }
+  body.popup-open #mobileControls,
+  body.popup-open #hint{
+    display:none !important;
+  }
+  @media (max-width:900px),(pointer:coarse){
+    #mobileControls{display:flex}
+    #heartBox{
+      top:8px;left:8px;width:154px;padding:8px 8px;font-size:12px;
+      transform:scale(.95);transform-origin:top left;
+    }
+    #checklist{
+      top:8px;right:8px;width:162px;padding:8px 8px;font-size:11px;max-height:26vh;
+      transform:scale(.95);transform-origin:top right;
+    }
+    #hint{
+      bottom:118px;
+      font-size:12px;
+      max-width:84vw;
+      padding:7px 10px;
+    }
+    .mobilePadHint{display:block}
+    #dialogueChoices{grid-template-columns:1fr}
+    #dialogueOverlay{
+      padding-top:max(12px,env(safe-area-inset-top));
+      padding-bottom:18px;
+      background:rgba(42,36,64,.68);
+    }
+    #dialogueCard{
+      width:min(95vw,720px);
+      max-height:72vh;
+      margin-top:0;
+      border-radius:18px;
+    }
+    canvas{
+      width:100vw;
+      height:min(calc(100vh - 6px), 720px);
+      border-radius:0;
+      box-shadow:none;
+    }
+  }
+  @media (max-width:520px){
+    .mobilePad{grid-template-columns:58px 58px 58px;grid-template-rows:58px 58px 58px;padding:9px}
+    .mobileSpacer{width:58px;height:58px}
+    .mobileBtn{width:58px;height:58px;font-size:22px}
+    .mobileBtn.action{width:84px;height:84px;font-size:14px}
+    #hint{bottom:108px}
+  }
+
+
+  /* Portrait-first mobile layout */
+  @media (max-width:900px),(pointer:coarse){
+    html, body, #wrap {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    canvas{
+      width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    #heartBox{
+      top: 6px !important;
+      left: 6px !important;
+      width: 146px !important;
+      padding: 7px 8px !important;
+      font-size: 11px !important;
+      transform: scale(.94);
+      transform-origin: top left;
+    }
+
+    #checklist{
+      top: 6px !important;
+      right: 6px !important;
+      width: 156px !important;
+      padding: 7px 8px !important;
+      font-size: 11px !important;
+      line-height: 1.2 !important;
+      max-height: 24vh !important;
+      transform: scale(.94);
+      transform-origin: top right;
+    }
+
+    #hint{
+      bottom: 118px !important;
+      max-width: 78vw !important;
+      font-size: 12px !important;
+      padding: 6px 10px !important;
+      border-radius: 14px !important;
+    }
+
+    #mobileControls{
+      inset: auto 0 0 0 !important;
+      padding:
+        8px
+        max(12px, env(safe-area-inset-right))
+        calc(10px + env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left)) !important;
+      width: 100vw !important;
+      justify-content: space-between !important;
+      align-items: end !important;
+      gap: 10px !important;
+    }
+
+    .mobilePadWrap{
+      gap: 6px !important;
+    }
+
+    .mobilePadHint{
+      font-size: 11px !important;
+      padding: 5px 8px !important;
+      max-width: 46vw !important;
+      text-align: center !important;
+    }
+
+    .mobilePad{
+      grid-template-columns: 54px 54px 54px !important;
+      grid-template-rows: 54px 54px 54px !important;
+      gap: 5px !important;
+      padding: 8px !important;
+      border-radius: 24px !important;
+    }
+
+    .mobileSpacer{
+      width: 54px !important;
+      height: 54px !important;
+    }
+
+    .mobileBtn{
+      width: 54px !important;
+      height: 54px !important;
+      border-radius: 16px !important;
+      font-size: 20px !important;
+    }
+
+    .mobileBtn.action{
+      width: 78px !important;
+      height: 78px !important;
+      border-radius: 22px !important;
+      font-size: 13px !important;
+    }
+
+    #dialogueOverlay{
+      align-items: flex-start !important;
+      padding-top: max(10px, env(safe-area-inset-top)) !important;
+      padding-bottom: 12px !important;
+      background: rgba(42,36,64,.78) !important;
+    }
+
+    #dialogueCard{
+      width: 94vw !important;
+      max-height: 68vh !important;
+      border-radius: 16px !important;
+      padding: 16px !important;
+    }
+
+    #endOverlay .card,
+    #startOverlay .card{
+      width: 94vw !important;
+      max-height: 84vh !important;
+      overflow: auto !important;
+      border-radius: 18px !important;
+      padding: 18px !important;
+    }
+  }
+
+  @media (max-width:520px) and (orientation:portrait){
+    #heartBox{
+      width: 136px !important;
+      font-size: 10px !important;
+    }
+
+    #checklist{
+      width: 146px !important;
+      font-size: 10px !important;
+      max-height: 22vh !important;
+    }
+
+    #hint{
+      bottom: 108px !important;
+      font-size: 11px !important;
+      max-width: 76vw !important;
+    }
+
+    .mobilePad{
+      grid-template-columns: 50px 50px 50px !important;
+      grid-template-rows: 50px 50px 50px !important;
+      gap: 4px !important;
+      padding: 7px !important;
+    }
+
+    .mobileSpacer{
+      width: 50px !important;
+      height: 50px !important;
+    }
+
+    .mobileBtn{
+      width: 50px !important;
+      height: 50px !important;
+      font-size: 18px !important;
+      border-radius: 15px !important;
+    }
+
+    .mobileBtn.action{
+      width: 72px !important;
+      height: 72px !important;
+      font-size: 12px !important;
+      border-radius: 20px !important;
+    }
+
+    .mobilePadHint{
+      display: none !important;
+    }
+
+    #dialogueCard{
+      max-height: 64vh !important;
+      padding: 14px !important;
+    }
+  }
+
+
+  /* Shrink gameplay area for portrait to leave room for controls */
+  @media (max-width:900px),(pointer:coarse){
+    canvas{
+      height: 72vh !important;
+      width: 100vw !important;
+    }
+    #wrap{
+      display:flex !important;
+      flex-direction:column !important;
+      justify-content:flex-start !important;
+      align-items:center !important;
+    }
+    #mobileControls{
+      position:fixed;
+      bottom:0;
+    }
+  }
+
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="1280" height="720"></canvas></div>
+<div class="overlay" id="startOverlay">
+  <div class="panel">
+    <h1>Ready for School!</h1>
+    <p>Pick a child and help them finish the morning routine without too much sibling arguing. Stay on task and choose calm answers so the parents' heart meter stays high.</p>
+    <div class="row" style="margin:18px 0 16px;">
+      <button class="card" id="pickAugust"><h2>Play as August</h2><p>Age 7. Fast, helpful, a little impatient.</p><p class="small">Magnolia will be the sibling NPC.</p></button>
+      <button class="card" id="pickMagnolia"><h2>Play as Magnolia</h2><p>Age 5. Cheerful, determined, full of big feelings.</p><p class="small">August will be the sibling NPC.</p></button>
+    </div>
+    <p><strong>Controls:</strong> <span class="kbd">WASD</span> or <span class="kbd">Arrow Keys</span> to move, <span class="kbd">E</span> to interact.</p>
+    <ul>
+      <li>Tasks: wake up, get dressed, eat breakfast, brush teeth, kiss Mom and Dad goodbye, then head to the front door ready for school.</li>
+      <li>Bedrooms are upstairs. Breakfast, bathroom, parents, and front door are downstairs.</li>
+      <li>Sibling moments pop up automatically. Pick kind words to stop arguments and protect the heart meter.</li>
+      <li>Try walking into the other child's bedroom too. A learning lesson will pop up there.</li>
+      <li>Speech bubbles now appear over the kids during sibling moments.</li>
+      <li>Mobile web controls are included: tap the arrows to move and INTERACT to use objects.</li>
+    </ul>
+  </div>
+</div>
+<div class="overlay hidden" id="dialogOverlay">
+  <div class="panel" style="max-width:760px;">
+    <h2 id="dialogTitle">Sibling Moment</h2>
+    <p id="dialogPrompt"></p>
+    <div class="row" id="dialogChoices" style="margin-top:18px;"></div>
+  </div>
+</div>
+<div class="overlay hidden" id="endOverlay">
+  <div class="panel" style="max-width:720px; text-align:center;">
+    <h1 id="endTitle"></h1>
+    <p id="endText"></p>
+    <button class="btn" id="restartBtn" style="margin-top:14px;">Play Again</button>
+  </div>
+</div>
+<div id="mobileControls" aria-hidden="true">
+  <div class="mobilePad">
+    <div class="mobileSpacer"></div><button class="mobileBtn" data-key="ArrowUp">▲</button><div class="mobileSpacer"></div>
+    <button class="mobileBtn" data-key="ArrowLeft">◀</button><div class="mobileSpacer"></div><button class="mobileBtn" data-key="ArrowRight">▶</button>
+    <div class="mobileSpacer"></div><button class="mobileBtn" data-key="ArrowDown">▼</button><div class="mobileSpacer"></div>
+  </div>
+  <div class="mobileActions">
+    <button class="mobileBtn action" data-key="e">INTERACT</button>
+  </div>
+</div>
+
+<div id="testStatus" class="hidden"></div>
+<script>
+(() => {
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const startOverlay = document.getElementById('startOverlay');
+const dialogOverlay = document.getElementById('dialogOverlay');
+const dialogPrompt = document.getElementById('dialogPrompt');
+const dialogChoices = document.getElementById('dialogChoices');
+const endOverlay = document.getElementById('endOverlay');
+const endTitle = document.getElementById('endTitle');
+const endText = document.getElementById('endText');
+
+const tasks = [
+  { key:'wake', label:'Wake Up', floor:'upstairs' },
+  { key:'dress', label:'Get Dressed', floor:'upstairs' },
+  { key:'breakfast', label:'Eat Breakfast', floor:'downstairs' },
+  { key:'teeth', label:'Brush Teeth', floor:'downstairs' },
+  { key:'goodbye', label:'Kiss Mom and Dad Goodbye', floor:'downstairs' },
+  { key:'door', label:'Ready for School', floor:'downstairs' },
+];
+
+const siblingMoments = [
+  {
+    prompt:(hero,sib)=>`${sib} says, "I wanted to go first on the stairs!"`,
+    good:`"You can go first. I'll wait."`,
+    bad:`"Too bad. Move, I'm going now!"`,
+    goodResult:'Nice job sharing space. The parents feel proud.',
+    badResult:'Uh oh. The argument got louder and the parents felt stressed.'
+  },
+  {
+    prompt:(hero,sib)=>`${sib} reaches for the same cereal and says, "That's mine!"`,
+    good:`"We can both have some. Let's share."`,
+    bad:`"Nope, I'm taking it all."`,
+    goodResult:'Sharing solved it quickly.',
+    badResult:'That made breakfast harder for everybody.'
+  },
+  {
+    prompt:(hero,sib)=>`${sib} says, "You're taking forever in the bathroom!"`,
+    good:`"I'll be quick, then it's your turn."`,
+    bad:`"Stop bossing me around!"`,
+    goodResult:'A calm promise kept the routine moving.',
+    badResult:'The bathroom argument wasted time.'
+  },
+  {
+    prompt:(hero,sib)=>`${sib} says, "Your shoes are in my way!"`,
+    good:`"I'll move them. Thanks for telling me."`,
+    bad:`"Then step over them."`,
+    goodResult:'Listening and helping kept things peaceful.',
+    badResult:'That answer made the mood worse.'
+  },
+];
+
+const rooms = {
+  upstairs: {
+    bounds:[{x:60,y:70,w:1160,h:255}],
+    walls:[
+      {x:625,y:70,w:30,h:120},
+      {x:625,y:300,w:30,h:25}
+    ],
+    interactables:{
+      bed:{x:125,y:135,w:180,h:78,label:'Wake up in bed'},
+      dresser:{x:430,y:122,w:90,h:120,label:'Get dressed at dresser'},
+      stairs:{x:580,y:240,w:110,h:70,label:'Go downstairs'},
+      sibBed:{x:780,y:135,w:180,h:78,label:'Sibling bed'},
+      toyBox:{x:1000,y:128,w:120,h:90,label:'Toy box'}
+    }
+  },
+  downstairs: {
+    bounds:[{x:60,y:350,w:1160,h:310}],
+    walls:[
+      {x:380,y:350,w:30,h:95},
+      {x:380,y:555,w:30,h:105},
+      {x:850,y:350,w:30,h:95},
+      {x:850,y:555,w:30,h:105}
+    ],
+    interactables:{
+      stairs:{x:580,y:360,w:110,h:70,label:'Go upstairs'},
+      table:{x:465,y:415,w:170,h:95,label:'Eat breakfast'},
+      sink:{x:905,y:415,w:110,h:95,label:'Brush teeth'},
+      door: {x:1080, y:430,w:65,h:145,label:'Go to school'},
+      parents:{x:145,y:435,w:135,h:120,label:'Kiss Mom and Dad Goodbye'},
+      sofa:{x:110,y:560,w:190,h:65,label:'Couch'}
+    }
+  }
+};
+
+let gameStarted=false, ended=false, floor='upstairs', lastTime=0, message='', messageTimer=0, currentDialog=null, siblingMomentIndex=0, siblingRoomLessonDone=false, siblingRoomLessonShown=false;
+let speechBubble=null, choiceEffectTimer=0, parentMood='happy', parentMoodTimer=0, heartParticles=[], allAnswersCorrect=true;
+const keys=new Set();
+const state={ heart:100, progress:{}, hero:null, sibling:null, timeOnTask:0 };
+
+let bumpLessonCooldown=0, bumpDialogShown=false, audioCtx=null, musicStarted=false, musicTimer=null, taskSparkles=[];
+const melody = [
+  ['C5',0.22],['E5',0.22],['G5',0.22],['E5',0.22],
+  ['A5',0.22],['G5',0.22],['E5',0.22],['D5',0.22],
+  ['C5',0.22],['E5',0.22],['G5',0.22],['B4',0.22],
+  ['A4',0.44],['D5',0.22],['G4',0.44],['R',0.22]
+];
+const bassline = [
+  ['C3',0.44],['C3',0.44],['A2',0.44],['A2',0.44],
+  ['F2',0.44],['F2',0.44],['G2',0.44],['G2',0.44]
+];
+
+function resetGame(){
+  state.heart=100; state.progress={wake:false,dress:false,breakfast:false,teeth:false,goodbye:false,door:false}; state.timeOnTask=0;
+  ended=false; floor='upstairs'; message=''; messageTimer=0; currentDialog=null; siblingMomentIndex=0; siblingRoomLessonDone=false; siblingRoomLessonShown=false; bumpLessonCooldown=0; bumpDialogShown=false; speechBubble=null; choiceEffectTimer=0; parentMood='happy'; parentMoodTimer=0; heartParticles=[]; taskSparkles=[]; allAnswersCorrect=true;
+  dialogOverlay.classList.add('hidden'); endOverlay.classList.add('hidden');
+}
+function createCharacters(choice){
+  const heroName=choice; const sibName=choice==='August'?'Magnolia':'August';
+  state.hero={name:heroName, x:230, y:220, w:42, h:58, speed:220, shirt: choice==='August' ? '#6ec1ff' : '#ff8cbf', hair: choice==='August' ? '#8c5a2b' : '#4a2c20', mood:'calm', moodTimer:0, bounceTimer:0};
+  state.sibling={name:sibName, x:900, y:220, w:42, h:58, speed:150, shirt: choice==='August' ? '#ff8cbf' : '#6ec1ff', hair: choice==='August' ? '#4a2c20' : '#8c5a2b', floor:'upstairs', mood:'calm', moodTimer:0, bounceTimer:0};
+}
+function currentTask(){ return tasks.find(t=>!state.progress[t.key]) || null; }
+function requiredInteractable(taskKey){ return ({wake:'bed',dress:'dresser',breakfast:'table',teeth:'sink',goodbye:'parents',door:'door'})[taskKey]; }
+function showMessage(text, seconds=2.8){ message=text; messageTimer=seconds; }
+
+function showSpeechBubble(target, text, seconds=3){
+  speechBubble = { target, text, timer: seconds };
+}
+function clearSpeechBubble(){ speechBubble = null; }
+function setHeroMood(mood, seconds=0){
+  if (!state.hero) return;
+  state.hero.mood = mood;
+  state.hero.moodTimer = seconds;
+}
+
+function setParentMood(mood, seconds=0){
+  parentMood = mood;
+  parentMoodTimer = seconds;
+}
+function spawnHeartBurst(x=202,y=468,count=8){
+  for(let i=0;i<count;i++){
+    heartParticles.push({
+      x: x + (Math.random()*36-18),
+      y: y + (Math.random()*18-9),
+      vx: Math.random()*30-15,
+      vy: -(38 + Math.random()*30),
+      size: 8 + Math.random()*6,
+      life: 1.6 + Math.random()*0.8,
+      maxLife: 1.6 + Math.random()*0.8
+    });
+  }
+}
+function triggerChoiceEffect(good){
+  if (!state.hero) return;
+  if (!good) allAnswersCorrect=false;
+  playChoiceSound(good);
+  if (good){
+    state.hero.bounceTimer = 0.9;
+    setHeroMood('happy', 0.9);
+    setParentMood('happy', 1.2);
+    spawnHeartBurst();
+  } else {
+    setHeroMood('sad', 3.0);
+    setParentMood('sad', 3.0);
+  }
+  choiceEffectTimer = good ? 0.9 : 3.0;
+}
+
+function noteFreq(note){
+  if (note==='R') return 0;
+  const map={'C':0,'D':2,'E':4,'F':5,'G':7,'A':9,'B':11};
+  const m = /^([A-G])(\#?)(\d)$/.exec(note);
+  if(!m) return 0;
+  const [,n,sharp,oct]=m;
+  let semitone = map[n] + (sharp ? 1 : 0);
+  const midi = (parseInt(oct)+1)*12 + semitone;
+  return 440 * Math.pow(2,(midi-69)/12);
+}
+function ensureAudio(){
+  if (!window.AudioContext && !window.webkitAudioContext) return;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!musicStarted) startMusicLoop();
+}
+function playBeep(freq=660, duration=0.08, type='square', volume=0.03, when=0){
+  if (!audioCtx || !freq) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime + when);
+  gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + when);
+  gain.gain.exponentialRampToValueAtTime(volume, audioCtx.currentTime + when + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + when + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime + when);
+  osc.stop(audioCtx.currentTime + when + duration + 0.02);
+}
+function scheduleTrack(offset=0){
+  if (!audioCtx) return 4;
+  let t=offset;
+  melody.forEach(([note,dur],i)=>{
+    const f = noteFreq(note);
+    if (f) playBeep(f,dur*0.95,'square',0.018,t);
+    const bass = bassline[i % bassline.length];
+    const bf = noteFreq(bass[0]);
+    if (bf) playBeep(bf,bass[1]*0.92,'triangle',0.011,t);
+    t += dur;
+  });
+  return t;
+}
+function startMusicLoop(){
+  if (!audioCtx || musicStarted) return;
+  musicStarted = true;
+  const loopSeconds = scheduleTrack(0);
+  musicTimer = setInterval(()=>{
+    if (audioCtx && audioCtx.state !== 'closed') scheduleTrack(0);
+  }, loopSeconds * 1000);
+}
+function playChoiceSound(good){
+  ensureAudio();
+  if (!audioCtx) return;
+  if (good){
+    playBeep(noteFreq('C5'),0.07,'square',0.028,0);
+    playBeep(noteFreq('E5'),0.07,'square',0.028,0.08);
+    playBeep(noteFreq('G5'),0.10,'square',0.028,0.16);
+  } else {
+    playBeep(noteFreq('G4'),0.09,'sawtooth',0.024,0);
+    playBeep(noteFreq('F4'),0.09,'sawtooth',0.024,0.10);
+    playBeep(noteFreq('D4'),0.13,'sawtooth',0.024,0.20);
+  }
+}
+function spawnTaskSparkles(x,y,count=10){
+  for(let i=0;i<count;i++){
+    taskSparkles.push({x:x+(Math.random()*24-12), y:y+(Math.random()*20-10), vx:Math.random()*50-25, vy:-(25+Math.random()*35), life:0.6+Math.random()*0.5, maxLife:0.6+Math.random()*0.5, size:4+Math.random()*4});
+  }
+}
+function playTaskSound(taskKey){
+  ensureAudio();
+  if (!audioCtx) return;
+  const patterns = {
+    wake:[['C5',0.06],['E5',0.06],['G5',0.08]],
+    dress:[['E5',0.06],['G5',0.06],['C6',0.10]],
+    breakfast:[['C5',0.05],['D5',0.05],['G5',0.05],['C6',0.10]],
+    teeth:[['G5',0.04],['A5',0.04],['B5',0.04],['D6',0.10]],
+    goodbye:[['C5',0.06],['E5',0.06],['G5',0.06],['C6',0.12]],
+    door:[['G5',0.06],['B5',0.06],['D6',0.08],['G6',0.16]]
+  };
+  (patterns[taskKey] || patterns.wake).forEach(([note,dur],i)=>playBeep(noteFreq(note),dur,'square',0.03,i*0.075));
+}
+function celebrateTask(taskKey, x, y){
+  playTaskSound(taskKey);
+  spawnTaskSparkles(x,y);
+  setHeroMood('happy', 0.8);
+  if (state.hero) state.hero.bounceTimer = 0.7;
+}
+function startGame(choice){ resetGame(); createCharacters(choice); ensureAudio(); startOverlay.classList.add('hidden'); gameStarted=true; showMessage(`Help ${choice} finish the morning routine!`, 3.2); }
+function openChoiceDialog(title, prompt, options){
+  currentDialog={custom:true};
+  document.getElementById('dialogTitle').textContent=title;
+  dialogPrompt.textContent=prompt; dialogChoices.innerHTML='';
+  showSpeechBubble('sibling', title==='Bedroom Lesson' || title.includes('Oops') ? prompt.split('. ')[0] : prompt);
+  options.forEach(opt=>{
+    const b=document.createElement('button'); b.className='choiceBtn'; b.textContent=opt.txt;
+    b.addEventListener('click',()=>{
+      dialogOverlay.classList.add('hidden');
+      currentDialog=null;
+      clearSpeechBubble();
+      opt.onPick();
+      if (state.heart<=0) endGame(false);
+    });
+    dialogChoices.appendChild(b);
+  });
+  dialogOverlay.classList.remove('hidden');
+}
+function triggerSiblingRoomLesson(){
+  siblingRoomLessonDone=true;
+  const siblingName=state.sibling.name;
+  openChoiceDialog(
+    'Bedroom Lesson',
+    `You walked into ${siblingName}'s bedroom. ${siblingName} says, "Please ask before touching my things." What do you say?`,
+    [
+      { txt:'"Okay. I will ask first and keep your room neat."', onPick:()=>{ triggerChoiceEffect(true); state.heart=Math.min(100,state.heart+6); showMessage('Great choice. Respecting space helps siblings feel safe and calm.',3.3); showSpeechBubble('hero','I will ask first!',1.8); } },
+      { txt:'"I can go wherever I want."', onPick:()=>{ triggerChoiceEffect(false); state.heart=Math.max(0,state.heart-12); showMessage('That hurt feelings. Learning to respect personal space is important.',3.3); showSpeechBubble('hero','I should have used kinder words.',2.6); } }
+    ]
+  );
+}
+function openDialog(scenario){
+  currentDialog=scenario; document.getElementById('dialogTitle').textContent='Sibling Moment'; dialogPrompt.textContent=scenario.prompt(state.hero.name, state.sibling.name); dialogChoices.innerHTML='';
+  showSpeechBubble('sibling', dialogPrompt.textContent);
+  [
+    {txt:scenario.good, good:true},
+    {txt:scenario.bad, good:false}
+  ].forEach(opt=>{
+    const b=document.createElement('button'); b.className='choiceBtn'; b.textContent=opt.txt;
+    b.addEventListener('click',()=>resolveDialog(opt.good)); dialogChoices.appendChild(b);
+  });
+  dialogOverlay.classList.remove('hidden');
+}
+function resolveDialog(good){
+  if (!currentDialog) return;
+  triggerChoiceEffect(good);
+  if (good) { state.heart=Math.min(100, state.heart+10); showMessage(currentDialog.goodResult, 3.1); showSpeechBubble('hero', "Okay! Let's be kind.", 1.8); }
+  else { state.heart=Math.max(0, state.heart-18); showMessage(currentDialog.badResult, 3.1); showSpeechBubble('hero', 'Oh no... that made things worse.', 2.4); }
+  currentDialog=null; dialogOverlay.classList.add('hidden');
+  if (state.heart<=0) endGame(false);
+}
+
+function triggerBumpLesson(){
+  if (currentDialog || ended || bumpLessonCooldown>0) return;
+  bumpLessonCooldown = 4.5;
+  const sib = state.sibling.name;
+  openChoiceDialog(
+    'Oops! Bumped Into Your Sibling',
+    `You bumped into ${sib} in the hallway. ${sib} says, "Hey! Watch where you're going!" What do you say?`,
+    [
+      { txt:'"Sorry about that. Are you okay? You can go first."', onPick:()=>{ triggerChoiceEffect(true); state.heart=Math.min(100,state.heart+8); showMessage('Kind words turned the bump into a caring moment.',3.2); showSpeechBubble('hero','Sorry! You can go first.',1.8); } },
+      { txt:'"Move! It was your fault."', onPick:()=>{ triggerChoiceEffect(false); state.heart=Math.max(0,state.heart-14); showMessage('Blaming made the hallway moment much worse.',3.2); showSpeechBubble('hero','That was not kind.',2.6); } }
+    ]
+  );
+}
+function endGame(win){
+  ended=true; gameStarted=false; endOverlay.classList.remove('hidden');
+  const earnedTrophy = win && allAnswersCorrect && Math.round(state.heart) >= 100;
+  const existingTrophy = document.getElementById('trophyBadge');
+  if (existingTrophy) existingTrophy.remove();
+
+  if (win && earnedTrophy){
+    const trophy = document.createElement('div');
+    trophy.id = 'trophyBadge';
+    trophy.textContent = '🏆';
+    trophy.style.fontSize = '84px';
+    trophy.style.margin = '4px 0 10px';
+    endTitle.parentNode.insertBefore(trophy, endTitle);
+
+    endTitle.textContent='Perfect Morning!';
+    endText.textContent=`${state.hero.name} finished every task, answered every question correctly, and kept the parents' heart meter at 100%.`;
+  }
+  else if (win){
+    endTitle.textContent='You made it to school!';
+    endText.textContent=`${state.hero.name} finished every task and kept the morning mostly peaceful. The parents' heart meter ended at ${Math.round(state.heart)}%.`;
+  }
+  else {
+    endTitle.textContent='Morning Meltdown';
+    endText.textContent=`The parents' heart meter ran out before the routine was finished. Try again and pick calmer choices.`;
+  }
+}
+function overlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
+function heroRect(nx=state.hero.x, ny=state.hero.y){ return {x:nx-state.hero.w/2, y:ny-state.hero.h/2, w:state.hero.w, h:state.hero.h}; }
+function isInsideFloor(rect){ return rooms[floor].bounds.some(b => rect.x>=b.x && rect.y>=b.y && rect.x+rect.w<=b.x+b.w && rect.y+rect.h<=b.y+b.h); }
+function hitsWall(rect){ return rooms[floor].walls.some(w => overlap(rect,w)); }
+function canMoveTo(nx,ny){ const rect=heroRect(nx,ny); return isInsideFloor(rect) && !hitsWall(rect); }
+function nearestInteractable(){
+  if (!state.hero) return null;
+  const all=rooms[floor].interactables; let best=null;
+  for (const [key,it] of Object.entries(all)){
+    const dx=(it.x+it.w/2)-state.hero.x, dy=(it.y+it.h/2)-state.hero.y, d=Math.hypot(dx,dy);
+    if (d<110 && (!best || d<best.d)) best={key,...it,d};
+  }
+  return best;
+}
+function interact(){
+  ensureAudio();
+  if (!gameStarted || currentDialog || ended) return;
+  const it=nearestInteractable(); if (!it) return;
+    const task=currentTask();
+  if (it.key==='stairs'){
+    floor = floor==='upstairs' ? 'downstairs' : 'upstairs';
+    if (floor==='downstairs'){ state.hero.x=635; state.hero.y=430; state.sibling.floor='downstairs'; state.sibling.x=545; state.sibling.y=450; }
+    else { state.hero.x=635; state.hero.y=255; state.sibling.floor='upstairs'; state.sibling.x=845; state.sibling.y=220; }
+    showMessage(floor==='downstairs' ? 'Downstairs we go.' : 'Back upstairs.', 2);
+    return;
+  }
+  if (!task) return;
+  const needed=requiredInteractable(task.key);
+  if (it.key!==needed){ showMessage(`Next task: ${task.label}`, 2); return; }
+  if (task.key==='wake'){ state.progress.wake=true; celebrateTask('wake', 215, 175); showMessage('You are awake and ready to start the day!', 2.8); }
+  if (task.key==='dress'){ state.progress.dress=true; celebrateTask('dress', 475, 180); showMessage('Clothes on. Great job getting dressed!', 2.8); }
+  if (task.key==='breakfast'){ state.progress.breakfast=true; celebrateTask('breakfast', 550, 450); showMessage('Breakfast finished. Yum!', 2.8); }
+  if (task.key==='teeth'){ state.progress.teeth=true; celebrateTask('teeth', 960, 450); showMessage('Teeth brushed. Sparkly clean!', 2.8); }
+  if (task.key==='goodbye'){ state.progress.goodbye=true; state.heart=Math.min(100, state.heart+12); celebrateTask('goodbye', 202, 465); spawnHeartBurst(202,468,10); showMessage('You gave Mom and Dad a goodbye kiss. Their hearts feel extra full!', 3); }
+  if (task.key==='door'){
+    if (Object.values(state.progress).slice(0,5).every(Boolean)) { state.progress.door=true; celebrateTask('door', 1140, 480); endGame(true); }
+    else showMessage('Finish the checklist before going to school.', 2.8);
+  }
+  state.timeOnTask=0;
+  if (!ended && siblingMomentIndex < siblingMoments.length && ['dress','breakfast','teeth'].includes(task.key)){
+    openDialog(siblingMoments[siblingMomentIndex++]);
+  }
+}
+function updateSibling(dt){
+  const sib=state.sibling; if (!sib || sib.floor!==floor || currentDialog) return;
+  const target = floor==='upstairs'
+    ? (sib.x > 700 ? {x:760, y:220} : {x:520, y:235})
+    : (sib.x > 650 ? {x:760, y:470} : {x:485, y:470});
+  const dx=target.x-sib.x, dy=target.y-sib.y, d=Math.hypot(dx,dy);
+  if (d>2){ sib.x += dx/d * sib.speed * dt * 0.42; sib.y += dy/d * sib.speed * dt * 0.42; }
+}
+function update(dt){
+  if (currentDialog || ended) return;
+  const hero=state.hero; let dx=0, dy=0;
+  if (keys.has('ArrowLeft')||keys.has('a')||keys.has('A')) dx-=1;
+  if (keys.has('ArrowRight')||keys.has('d')||keys.has('D')) dx+=1;
+  if (keys.has('ArrowUp')||keys.has('w')||keys.has('W')) dy-=1;
+  if (keys.has('ArrowDown')||keys.has('s')||keys.has('S')) dy+=1;
+  if (dx||dy){ const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len; const nx=hero.x+dx*hero.speed*dt, ny=hero.y+dy*hero.speed*dt; if (canMoveTo(nx,ny)){ hero.x=nx; hero.y=ny; } }
+  state.timeOnTask += dt;
+  if (state.timeOnTask > 14){ state.heart=Math.max(0, state.heart - dt*2.1); }
+  else { state.heart=Math.max(0, state.heart - dt*0.09); }
+  if (state.heart<=0) endGame(false);
+  if (messageTimer>0){ messageTimer -= dt; if (messageTimer<=0) message=''; }
+  if (speechBubble){ speechBubble.timer -= dt; if (speechBubble.timer<=0) speechBubble=null; }
+  if (state.hero?.moodTimer>0){ state.hero.moodTimer -= dt; if (state.hero.moodTimer<=0) state.hero.mood='calm'; }
+  if (state.hero?.bounceTimer>0){ state.hero.bounceTimer -= dt; }
+  if (parentMoodTimer>0){ parentMoodTimer -= dt; if (parentMoodTimer<=0) parentMood='happy'; }
+  heartParticles = heartParticles.filter(p => {
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy -= 8 * dt;
+    return p.life > 0;
+  });
+  taskSparkles = taskSparkles.filter(p => {
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 18 * dt;
+    return p.life > 0;
+  });
+  if (bumpLessonCooldown>0) bumpLessonCooldown -= dt;
+  updateSibling(dt);
+  if (state.hero && state.sibling && state.sibling.floor===floor){
+    const dist = Math.hypot(state.hero.x - state.sibling.x, state.hero.y - state.sibling.y);
+    if (dist < 52 && bumpLessonCooldown<=0){
+      triggerBumpLesson();
+    }
+  }
+  if (floor==='upstairs' && !siblingRoomLessonShown){
+    const inSiblingRoom = state.hero && state.hero.x > 720 && state.hero.x < 1180 && state.hero.y > 95 && state.hero.y < 300;
+    if (inSiblingRoom){
+      siblingRoomLessonShown = true;
+      siblingRoomLessonDone = true;
+      triggerSiblingRoomLesson();
+    }
+  }
+}
+
+function roundedRect(x,y,w,h,r,fill,stroke){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); if (fill){ ctx.fillStyle=fill; ctx.fill(); } if (stroke){ ctx.strokeStyle=stroke; ctx.stroke(); }
+}
+function drawHouse(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#cbe9ff'; ctx.fillRect(0,0,1280,720);
+  roundedRect(40,50,1200,620,28,'#f8f4ee','#b8b0a5');
+  roundedRect(60,70,1160,255,24, floor==='upstairs' ? '#fff2d9' : '#f7ecd6','#c6b28f');
+  roundedRect(60,350,1160,310,24, floor==='downstairs' ? '#e9f9ef' : '#e4f2ea','#b1c9ba');
+  ctx.fillStyle='#b08f69'; ctx.fillRect(625,70,30,120); ctx.fillRect(625,300,30,25); ctx.fillRect(380,350,30,95); ctx.fillRect(380,555,30,105); ctx.fillRect(850,350,30,95); ctx.fillRect(850,555,30,105);
+  drawDoorway(625,190,30,110,'#7a5cff','Hallway opening');
+  drawDoorway(380,445,30,110,'#ff8a5b','Living to kitchen');
+  drawDoorway(850,445,30,110,'#39b980','Kitchen to bathroom');
+  ctx.fillStyle='#8a5f3b'; ctx.font='700 28px Trebuchet MS'; ctx.fillText('UPSTAIRS', 85, 104); ctx.fillText('DOWNSTAIRS', 85, 384);
+  drawBed(125,135,'#9cd3ff'); drawDresser(430,122); drawStairs(580,240,true); drawBed(780,135,'#ffbad6'); drawToyBox(1000,128);
+  drawParentsArea(); drawKitchen(); drawBathroom(); drawDoor(1110,430); drawStairs(580,360,false);
+}
+function drawBed(x,y,blanket){ roundedRect(x,y,180,78,16,'#fff','#bea887'); roundedRect(x+12,y+10,56,20,10,'#f5f0ea','#c9bbb0'); roundedRect(x+10,y+34,160,34,14,blanket,'#7a97b4'); }
+function drawDresser(x,y){ roundedRect(x,y,90,120,14,'#b67849','#845532'); for(let i=0;i<3;i++){ roundedRect(x+12,y+12+i*33,66,21,8,'#d79a68','#845532'); ctx.fillStyle='#5c3a24'; ctx.beginPath(); ctx.arc(x+45,y+22+i*33,3.5,0,Math.PI*2); ctx.fill(); } }
+function drawToyBox(x,y){ roundedRect(x,y,120,90,14,'#ffd96b','#be9a24'); roundedRect(x+10,y+18,100,55,12,'#ffefad','#be9a24'); ctx.fillStyle='#7a5cff'; ctx.font='700 18px Trebuchet MS'; ctx.fillText('TOYS', x+34, y+54); }
+function drawStairs(x,y,up){ roundedRect(x,y,110,70,12,'#caa471','#8a6b41'); ctx.strokeStyle='#8a6b41'; for(let i=1;i<5;i++){ ctx.beginPath(); ctx.moveTo(x,y+i*14); ctx.lineTo(x+110,y+i*14); ctx.stroke(); } ctx.fillStyle='#2a2440'; ctx.font='700 16px Trebuchet MS'; ctx.fillText(up ? 'Downstairs' : 'Upstairs', x+15, y+42); }
+function drawDoorway(x,y,w,h,color,label){ roundedRect(x-4,y-4,w+8,h+8,10,'rgba(255,255,255,0.82)',color); roundedRect(x,y,w,h,8,color,'rgba(0,0,0,0.15)'); ctx.save(); ctx.translate(x+w/2,y+h/2); ctx.rotate(-Math.PI/2); ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='700 12px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(label,0,4); ctx.restore(); }
+function drawParentsArea(){ roundedRect(105,415,195,170,20,'#f5f0ff','#aea0d9'); roundedRect(130,545,145,55,12,'#c78d5d','#8d5f36'); }
+function drawKitchen(){ roundedRect(430,395,240,155,18,'#fff9d8','#cdbf73'); roundedRect(465,415,170,95,18,'#f5cc82','#b78338'); ctx.fillStyle='#8d6030'; ctx.font='700 18px Trebuchet MS'; ctx.fillText('BREAKFAST TABLE', 475, 468); }
+function drawBathroom(){ roundedRect(900,395,180,170,18,'#daf2ff','#93bfd9'); roundedRect(905,415,110,95,16,'#eef9ff','#9abfd0'); roundedRect(930,398,60,20,10,'#fff','#9abfd0'); ctx.fillStyle='#2a2440'; ctx.font='700 18px Trebuchet MS'; ctx.fillText('SINK', 940, 468); }
+function drawDoor(x,y){ roundedRect(x,y,65,145,14,'#9f6a3f','#6b452b'); ctx.fillStyle='#e7d9b8'; ctx.beginPath(); ctx.arc(x+49,y+78,4.5,0,Math.PI*2); ctx.fill(); }
+function drawCharacter(ch,isHero){
+  ctx.save();
+  let bounceOffset = 0;
+  if (ch.bounceTimer>0){
+    bounceOffset = Math.sin((0.9 - ch.bounceTimer) * 20) * 8 * Math.min(1, ch.bounceTimer * 2);
+  }
+  ctx.translate(ch.x, ch.y - bounceOffset);
+  ctx.fillStyle=ch.hair; ctx.beginPath(); ctx.arc(0,-18,17,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#ffd9b8'; ctx.beginPath(); ctx.arc(0,-14,14,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(-5,-16,1.8,0,Math.PI*2); ctx.arc(5,-16,1.8,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#8a4b4b'; ctx.lineWidth=1.8; ctx.beginPath();
+  if (ch.mood==='sad') { ctx.moveTo(-5,-8); ctx.quadraticCurveTo(0,-14,5,-8); }
+  else if (ch.mood==='happy') { ctx.moveTo(-5,-10); ctx.quadraticCurveTo(0,-5,5,-10); }
+  else { ctx.moveTo(-4,-9); ctx.lineTo(4,-9); }
+  ctx.stroke();
+  ctx.fillStyle=ch.shirt; roundedRect(-16,0,32,30,10,ch.shirt,'rgba(0,0,0,.15)');
+  ctx.strokeStyle='#4b3c66'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-9,30); ctx.lineTo(-9,54); ctx.moveTo(9,30); ctx.lineTo(9,54); ctx.moveTo(-18,12); ctx.lineTo(-30,30); ctx.moveTo(18,12); ctx.lineTo(30,30); ctx.stroke();
+  ctx.fillStyle=isHero ? '#7a5cff' : '#665f7d'; ctx.font='700 16px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(ch.name, 0, -38);
+  if (isHero){ ctx.strokeStyle='#7a5cff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,9,30,0,Math.PI*2); ctx.stroke(); }
+  ctx.restore();
+}
+function drawSpeechBubble(){
+  if (!speechBubble) return;
+  const ch = speechBubble.target==='hero' ? state.hero : state.sibling;
+  if (!ch || (speechBubble.target==='sibling' && state.sibling.floor!==floor)) return;
+  const maxWidth = 240;
+  const padding = 12;
+  const lines = wrapBubbleText(speechBubble.text, 24);
+  const width = Math.min(maxWidth, Math.max(...lines.map(l=>ctx.measureText(l).width), 80) + padding*2);
+  const height = lines.length * 18 + padding*2;
+  const x = Math.max(30, Math.min(1280-width-30, ch.x - width/2));
+  const y = ch.y - 110;
+  roundedRect(x,y,width,height,14,'rgba(255,255,255,0.96)','#7a5cff');
+  ctx.beginPath();
+  ctx.moveTo(ch.x-8, y+height);
+  ctx.lineTo(ch.x+4, y+height+16);
+  ctx.lineTo(ch.x+10, y+height);
+  ctx.closePath();
+  ctx.fillStyle='rgba(255,255,255,0.96)'; ctx.fill(); ctx.strokeStyle='#7a5cff'; ctx.stroke();
+  ctx.fillStyle='#2a2440'; ctx.font='700 15px Trebuchet MS'; ctx.textAlign='center';
+  lines.forEach((line,i)=>ctx.fillText(line, x+width/2, y+padding+16+i*18));
+  ctx.textAlign='left';
+}
+function wrapBubbleText(text, maxChars){
+  const words = text.split(/\s+/);
+  const lines=[]; let line='';
+  words.forEach(word=>{
+    const test = line ? line + ' ' + word : word;
+    if (test.length > maxChars && line){ lines.push(line); line = word; }
+    else line = test;
+  });
+  if (line) lines.push(line);
+  return lines.slice(0,4);
+}
+function drawParents(){ drawTinyAdult(158,470,'#7bcf99','#4d3b2a',parentMood); drawTinyAdult(235,470,'#ffb07c','#4a2b22',parentMood); ctx.fillStyle='#2a2440'; ctx.font='700 16px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText('Parents', 202, 530); ctx.textAlign='left'; }
+function drawTinyAdult(x,y,shirt,hair,mood='happy'){ ctx.save(); ctx.translate(x,y); ctx.fillStyle=hair; ctx.beginPath(); ctx.arc(0,-12,14,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#ffd9b8'; ctx.beginPath(); ctx.arc(0,-9,11,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(-4,-10,1.5,0,Math.PI*2); ctx.arc(4,-10,1.5,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#8a4b4b'; ctx.lineWidth=1.4; ctx.beginPath(); if (mood==='sad') { ctx.moveTo(-3.5,-4); ctx.quadraticCurveTo(0,-9,3.5,-4); } else { ctx.moveTo(-3.5,-6); ctx.quadraticCurveTo(0,-2,3.5,-6); } ctx.stroke(); roundedRect(-14,6,28,32,9,shirt,'rgba(0,0,0,.12)'); ctx.strokeStyle='#4b3c66'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(-8,38); ctx.lineTo(-8,60); ctx.moveTo(8,38); ctx.lineTo(8,60); ctx.moveTo(-15,18); ctx.lineTo(-28,34); ctx.moveTo(15,18); ctx.lineTo(28,34); ctx.stroke(); ctx.restore(); }
+
+function drawHeartParticles(){
+  heartParticles.forEach(p=>{
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(p.size/12, p.size/12);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ff6f97';
+    ctx.beginPath();
+    ctx.moveTo(0, 3);
+    ctx.bezierCurveTo(0, -3, -8, -3, -8, 3);
+    ctx.bezierCurveTo(-8, 8, -2, 11, 0, 13);
+    ctx.bezierCurveTo(2, 11, 8, 8, 8, 3);
+    ctx.bezierCurveTo(8, -3, 0, -3, 0, 3);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+
+function drawTaskSparkles(){
+  taskSparkles.forEach(p=>{
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffd85a';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#fff4c9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x-p.size-3,p.y); ctx.lineTo(p.x+p.size+3,p.y);
+    ctx.moveTo(p.x,p.y-p.size-3); ctx.lineTo(p.x,p.y+p.size+3);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+function drawHUD(){
+  roundedRect(18,16,300,72,16,'rgba(255,255,255,.82)','#9ea4cb');
+  ctx.fillStyle='#2a2440'; ctx.font='700 18px Trebuchet MS'; ctx.fillText('Parents Heart Meter', 34, 40);
+  roundedRect(34,50,220,20,10,'#f1d4d8','#cf8a93');
+  roundedRect(34,50,Math.max(0,220*state.heart/100),20,10, state.heart>60 ? '#ff7794' : state.heart>30 ? '#ffb24b' : '#e34b5f');
+  ctx.font='700 16px Trebuchet MS'; ctx.fillText(`${Math.round(state.heart)}%`, 265, 66);
+
+  roundedRect(938,16,324,172,16,'rgba(255,255,255,.80)','#9ea4cb');
+  ctx.fillStyle='#2a2440'; ctx.font='700 18px Trebuchet MS'; ctx.fillText('Morning Checklist', 956, 40);
+  ctx.font='700 15px Trebuchet MS';
+  tasks.forEach((t,i)=>{
+    const done=state.progress[t.key];
+    ctx.fillStyle = done ? '#2b9b65' : (currentTask() && currentTask().key===t.key ? '#7a5cff' : '#665f7d');
+    const prefix = done ? '✓' : (currentTask() && currentTask().key===t.key ? '➜' : '○');
+    ctx.fillText(`${prefix} ${t.label}`, 956, 68 + i*20);
+  });
+
+  if (messageTimer>0){ roundedRect(290,650,700,42,16,'rgba(255,255,255,.88)','#9ea4cb'); ctx.fillStyle='#2a2440'; ctx.font='700 18px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(message,640,677); ctx.textAlign='left'; }
+  const nearby=nearestInteractable();
+  if (nearby && !currentDialog && !ended){ roundedRect(18,650,250,42,16,'rgba(255,255,255,.88)','#9ea4cb'); ctx.fillStyle='#2a2440'; ctx.font='700 16px Trebuchet MS'; ctx.textAlign='center'; ctx.fillText(`Press E: ${nearby.label}`, 143, 677); ctx.textAlign='left'; }
+}
+function highlightNextTarget(){ const task=currentTask(); if (!task || task.floor!==floor || ended) return; const it=rooms[floor].interactables[requiredInteractable(task.key)]; if (!it) return; ctx.save(); ctx.setLineDash([10,6]); ctx.lineWidth=5; ctx.strokeStyle='#7a5cff'; roundedRect(it.x-6,it.y-6,it.w+12,it.h+12,18,null,'#7a5cff'); ctx.restore(); }
+function draw(){ drawHouse(); if (state.hero) highlightNextTarget(); drawParents(); drawHeartParticles(); drawTaskSparkles(); if (state.sibling && state.sibling.floor===floor) drawCharacter(state.sibling,false); if (state.hero) drawCharacter(state.hero,true); drawSpeechBubble(); drawHUD(); }
+function loop(ts){ const dt=Math.min(.033, (ts-lastTime)/1000 || .016); lastTime=ts; if (gameStarted && state.hero) update(dt); draw(); requestAnimationFrame(loop); }
+
+document.getElementById('pickAugust').addEventListener('click',()=>startGame('August'));
+document.getElementById('pickMagnolia').addEventListener('click',()=>startGame('Magnolia'));
+document.getElementById('restartBtn').addEventListener('click',()=>{ startOverlay.classList.remove('hidden'); endOverlay.classList.add('hidden'); gameStarted=false; });
+window.addEventListener('keydown',e=>{ if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','e','E','w','a','s','d','W','A','S','D'].includes(e.key)) e.preventDefault(); ensureAudio(); keys.add(e.key); if (e.key==='e' || e.key==='E') interact(); });
+window.addEventListener('keyup',e=>keys.delete(e.key));
+const mobileButtons = Array.from(document.querySelectorAll('.mobileBtn'));
+function pressVirtualKey(key){
+  ensureAudio();
+  if (key.toLowerCase()==='e') { interact(); return; }
+  keys.add(key);
+}
+function releaseVirtualKey(key){ keys.delete(key); }
+mobileButtons.forEach(btn=>{
+  const key = btn.dataset.key;
+  const stop = e => { e.preventDefault(); e.stopPropagation(); };
+  btn.addEventListener('touchstart', e=>{ stop(e); pressVirtualKey(key); }, {passive:false});
+  btn.addEventListener('touchend', e=>{ stop(e); releaseVirtualKey(key); }, {passive:false});
+  btn.addEventListener('touchcancel', e=>{ stop(e); releaseVirtualKey(key); }, {passive:false});
+  btn.addEventListener('mousedown', e=>{ stop(e); pressVirtualKey(key); });
+  btn.addEventListener('mouseup', e=>{ stop(e); releaseVirtualKey(key); });
+  btn.addEventListener('mouseleave', ()=>releaseVirtualKey(key));
+});
+
+window.__gameDebug = { getState: () => ({floor, gameStarted, ended, currentDialog:!!currentDialog, heart:state.heart, progress:{...state.progress}, hero: state.hero ? {x:state.hero.x,y:state.hero.y,name:state.hero.name} : null }) };
+
+function runAutoTest(){
+  const testNode = document.getElementById('testStatus');
+  try {
+    startGame('August');
+    bumpLessonCooldown = 99;
+    state.hero.x = 215; state.hero.y = 185; interact();
+    state.hero.x = 470; state.hero.y = 180; interact();
+    if (currentDialog && !currentDialog.custom) resolveDialog(true);
+    state.hero.x = 850; state.hero.y = 175; interact();
+    if (currentDialog && currentDialog.custom) document.querySelector('#dialogChoices button').click();
+    floor='downstairs'; state.hero.x=550; state.hero.y=390; state.sibling.floor='downstairs';
+    state.hero.x = 540; state.hero.y = 455; interact();
+    if (currentDialog) resolveDialog(true);
+    state.hero.x = 955; state.hero.y = 455; interact();
+    if (currentDialog) resolveDialog(true);
+    state.hero.x = 205; state.hero.y = 480; interact();
+    state.hero.x = 1140; state.hero.y = 500; interact();
+    const win = ended && state.progress.door && state.progress.goodbye;
+    testNode.textContent = win ? `AUTOTEST:PASS:${Math.round(state.heart)}` : `AUTOTEST:FAIL:${JSON.stringify(window.__gameDebug.getState())}`;
+  } catch (err) {
+    testNode.textContent = `AUTOTEST:ERROR:${err.message}`;
+  }
+}
+if (new URLSearchParams(location.search).get('autotest') === '1') {
+  setTimeout(runAutoTest, 100);
+}
+requestAnimationFrame(loop);
+})();
+</script>
+
+<script>
+(function(){
+  function isVisible(el){
+    if(!el) return false;
+    const s = getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  }
+  function syncPopupState(){
+    const overlays = [
+      document.getElementById('dialogueOverlay'),
+      document.getElementById('endOverlay'),
+      document.getElementById('startOverlay')
+    ].filter(Boolean);
+    const popupOpen = overlays.some(isVisible) && !isVisible(document.getElementById('startOverlay')) ? overlays.some(el => el.id !== 'startOverlay' && isVisible(el)) : false;
+    document.body.classList.toggle('popup-open', popupOpen);
+  }
+  const obs = new MutationObserver(syncPopupState);
+  obs.observe(document.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['style','class']});
+  window.addEventListener('load', syncPopupState);
+  document.addEventListener('click', syncPopupState, true);
+  document.addEventListener('touchstart', syncPopupState, true);
+})();
+</script>
+
+</body>
+</html>
